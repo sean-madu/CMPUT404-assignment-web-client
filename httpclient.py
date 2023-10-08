@@ -74,12 +74,18 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        print("GEtting URL ")
-        print(url)
-        print()
-        #TODO add all the other things from the url to make sure we are parsing the right thing
-        url = urllib.parse.urlparse(url).netloc
+        parsedUrl = urllib.parse.urlparse(url)
+        url = parsedUrl.netloc
+        if parsedUrl.path != "/" or parsedUrl.path != "":
+            url += parsedUrl.path
+        if parsedUrl.query != "":
+            url += "?" + parsedUrl.query
 
+        if parsedUrl.fragment != "":
+            url += "#" + parsedUrl.fragment
+
+        print("After everything url")
+        print(url)
         code = 500
         body = f'GET / HTTP/1.0\r\nHost: {url}\r\n\r\n'
         self.connect(url, PORT)  # Cant find 127 urls?
@@ -93,9 +99,19 @@ class HTTPClient(object):
         self.socket.shutdown(socket.SHUT_WR)
         content = self.recvall(self.socket)
         code = self.get_code(content)
-        headers = self.get_headers(content)
-        body = self.get_headers(content)
 
+        headers = self.get_headers(content)
+
+        if (code.startswith("3")):
+            # Code is a redirect code, we need the location header to get the right location
+            hArr = headers.split("\r\n")
+            for header in hArr:
+                if header.upper().startswith("LOCATION"):
+                    location = header.split(" ")[1]
+                    print(location)
+                    self.GET(location)
+
+        body = self.get_body(content)
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
@@ -111,7 +127,6 @@ class HTTPClient(object):
 
 
 if __name__ == "__main__":
-    print(sys.argv)
     client = HTTPClient()
     command = "GET"
     if (len(sys.argv) <= 1):
