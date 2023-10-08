@@ -47,13 +47,13 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        return data.split(" ")[1]
 
     def get_headers(self, data):
-        return None
+        return data.split("\r\n\r\n")[0]
 
     def get_body(self, data):
-        return None
+        return data.split("\r\n\r\n")[1]
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -76,6 +76,9 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         print("GEtting URL ")
         print(url)
+        print()
+        #TODO add all the other things from the url to make sure we are parsing the right thing
+        url = urllib.parse.urlparse(url).netloc
 
         code = 500
         body = f'GET / HTTP/1.0\r\nHost: {url}\r\n\r\n'
@@ -88,8 +91,11 @@ class HTTPClient(object):
             sys.exit()
 
         self.socket.shutdown(socket.SHUT_WR)
-        buffer = self.recvall(self.socket)
-        print(buffer)
+        content = self.recvall(self.socket)
+        code = self.get_code(content)
+        headers = self.get_headers(content)
+        body = self.get_headers(content)
+
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
